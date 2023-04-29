@@ -343,33 +343,6 @@ static int get_character_byte_count(const char *text, const int max_width)
     // Advance glyph by glyph, computing the correct size
     while((*p != '\0') && (formatted_len < max_width)) {
         formatted_len++;
-        /*
-        if ((*p & 0x80) == 0) {
-            // single-byte character (ASCII)
-            byte_count += 1;
-            p += 1;
-        }
-        else if ((*p & 0xE0) == 0xC0) {
-            // two-byte character
-            byte_count += 2;
-            p += 2;
-        }
-        else if ((*p & 0xF0) == 0xE0) {
-            // three-byte character
-            byte_count += 3;
-            p += 3;
-        }
-        else if ((*p & 0xF8) == 0xF0) {
-            // four-byte character
-            byte_count += 4;
-            p += 4;
-        }
-        else {
-            // Invalid character
-            fprintf(stderr, "Invalid character.\n");
-            exit(1);
-        }
-        */
         switch (*p & 0xF0) {
             case 0x00:
             case 0x10:
@@ -381,7 +354,7 @@ static int get_character_byte_count(const char *text, const int max_width)
             case 0xC0: // two-byte character
                 byte_count += 2;
                 p +=2 ;
-                break
+                break;
             case 0xE0: // three-byte character
                 byte_count += 3;
                 p += 3;
