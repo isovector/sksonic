@@ -1810,6 +1810,14 @@ void handle_action(const int action, AppState *app_state)
                 refresh_windows(app_state, playlist_windows, 1);
             }
             break;
+        case remove_all:
+            if (app_state->current_view == VIEW_PLAYLIST) {
+                while(playlist->size > 0) {
+                    delete_song(app_state);
+                }
+                refresh_windows(app_state, playlist_windows, 1);
+            }
+            break;
         case play_pause:
             pause_resume(app_state);
             break;
