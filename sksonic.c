@@ -1504,31 +1504,25 @@ void request_songs(const Connection *conn, Album *album) {
 void play_previous_next(AppState *const app_state, const int action)
 {
     Playlist *playlist = app_state->playlist;
-    FILE *fp = fopen("/home/eric/ppl", "a");
     switch (action)
     {
         case previous:
-            fprintf(fp, "Before changing -- PID: %d\n", playlist->pid);
             if (playlist->current_playing > 0)
             {
                 --(playlist->current_playing);
                 play_song(app_state, playlist->current_playing);
-                fprintf(fp, "After changing -- PID: %d\n", playlist->pid);
             }
             break;
         case next:
-            fprintf(fp, "Before changing -- PID: %d\n", playlist->pid);
             if (playlist->current_playing < playlist->size - 1)
             {
                 ++(playlist->current_playing);
                 play_song(app_state, playlist->current_playing);
-                fprintf(fp, "After changing -- PID: %d\n", playlist->pid);
             }
             break;
         default:
             break;
     }
-    fclose(fp);
     return;
 }
 
