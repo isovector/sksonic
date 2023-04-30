@@ -12,7 +12,7 @@
 #include "cJSON.c"
 
 #include <ncurses.h>
-#include "config.h"
+#include "config.h.eric"
 #define HASH_TABLE_SIZE 1024
 
 typedef enum {
@@ -1679,6 +1679,10 @@ void update_playlist_state(AppState *app_state)
     playlist->play_time = 0;
     playlist->start_time = time(NULL);
     play_song(app_state, playlist->current_playing);
+    
+    if (app_state->current_view == VIEW_PLAYLIST) {
+        refresh_windows(app_state, app_state->windows[WINDOW_PLAYLIST], 1);
+    }
     return;
 }
 
