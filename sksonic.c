@@ -12,7 +12,7 @@
 #include "cJSON.c"
 
 #include <ncurses.h>
-#include "config.h.eric"
+#include "config.h"
 #define HASH_TABLE_SIZE 1024
 
 typedef enum {
@@ -343,29 +343,30 @@ static int get_character_byte_count(const char *text, const int max_width)
     // Advance glyph by glyph, computing the correct size
     while((*p != '\0') && (formatted_len < max_width)) {
         formatted_len++;
-        switch (*p & 0xF0) {
-            case 0x00:
-            case 0x10:
-            case 0x20:
-            case 0x30: // single-byte character
-                byte_count += 1;
-                p += 1;
-                break;
-            case 0xC0: // two-byte character
-                byte_count += 2;
-                p +=2 ;
-                break;
-            case 0xE0: // three-byte character
-                byte_count += 3;
-                p += 3;
-                break;
-            case 0xF0: // four-byte character
-                byte_count += 4;
-                p += 4;
-                break;
-            default: // invalid character
-                fprintf(stderr, "Invalid character.\n");
-                return -1;
+        if ((*p & 0x80) == 0) {
+            // single-byte character (ASCII)
+            byte_count += 1;
+            p += 1;
+        }
+        else if ((*p & 0xE0) == 0xC0) {
+            // two-byte character
+            byte_count += 2;
+            p += 2;
+        }
+        else if ((*p & 0xF0) == 0xE0) {
+            // three-byte character
+            byte_count += 3;
+            p += 3;
+        }
+        else if ((*p & 0xF8) == 0xF0) {
+            // four-byte character
+            byte_count += 4;
+            p += 4;
+        }
+        else {
+            // Invalid character
+            fprintf(stderr, "Invalid character.\n");
+            exit(1);
         }
     }
     return byte_count;
@@ -422,7 +423,7 @@ char *format_text(const char *const  text, const int max_width, const char *cons
         const size_t bytes_formatted = bytes_prefix + bytes_text + bytes_ellipsis + 1;
 
         // Allocate enough space to hold the entire string with prefix and ellipsis
-        char * formatted = calloc(bytes_formatted, sizeof(char));
+        char *formatted = calloc(bytes_formatted, sizeof(char));
 	if (formatted == NULL) {
             return NULL;
 	}
