@@ -53,5 +53,40 @@ The default keybindings are:
 - `x` toggles shuffle mode.
 - `q` exits.
 
+## Configuration Options
+
+### Customizing the Colors
+It is possible to modify the colors used in `sksonic` by editing `colors[NUM_COLORS][2]` in `config.h`
+
+### Keybindings
+The default keybindings can be changed by editing `keys[][2]` in `config.h`
+Available actions are listed in `enum { play_pause, stop, next, previous, repeat, shuffle, quit, add, add_and_play, remove_one, remove_all, main_view, playlist_view, up, down, left, right, resize, bottom, top, chord };`
+To modify a keybinding, replace the desired key in the array, for instance, to switch from using `p` to toggle play-pause to using `t`,
+you should replace `{'p',               play_pause},` with `{'t',               play_pause},`
+To create new bindings add new entries to the array.
+Keybinding chors are separately defined in `enum { chord_top };` and `chords[][2]`
+
+### Appearance
+The aspect of some elements in the UI can be modified by editing `*appearance[5]`
+
+### `notify_cmd`
+The `notify_cmd` variable in `config.h` defines the program that `sksonic` should use to send notifications.
+If `notify_cmd` is set to NULL, no notification will be displayed.
+
+You can customize this variable to use any program that supports receiving notifications.
+For example, you could set `notify_cmd` to `notify-send`.
+
+To enable notifications, edit the `notify_cmd` field in `config.h` to specify the program you want to use.
+The code in `sksonic.c` assumes `notify-send` style.
+
+### `state_dump`
+The `state_dump` variable in config.h specifies the file path where sksonic should save the current playback status.
+If `state_dump` is set to NULL, no dump will be performed.
+
+This variable allows you to save the app state about playback status to a file, which can be useful for processing the data with a custom script.
+However, note that writing a custom script is required to process the output data.
+
+To enable dumping of playback status, edit the `state_dump` field in `config.h` to specify the file path where you want to save the status.
+
 #### Note
 I have tested `sksonic` only with navidrome, although it should work with any subsonic compatible server.
