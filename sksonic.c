@@ -14,6 +14,7 @@
 #include <ncurses.h>
 #include "config.h"
 #define HASH_TABLE_SIZE 1024
+#define NOTIFICATION_LENGTH 1024
 
 typedef enum {
     PANEL_ARTISTS,
@@ -156,6 +157,7 @@ void delete_song(const AppState *const app_state);
 void get_artists(const Connection *connection, Database *db);
 void get_albums(const Connection *connection, Database *db, const char *artist_id);
 void get_songs(const Connection *connection, Database *db, const char *artist_id, const char *album_id);
+void notify(const AppState *app_state);
 void request_albums(const Connection *const conn, Artist *const artist);
 void request_songs(const Connection *conn, Album *album);
 static WINDOW **create_windows(const int n, const int bottom_space, const WindowType window_type);
@@ -939,7 +941,69 @@ static inline void change_playback_status(const pid_t pid, const int signal)
 }
 
 /**
+ * Dumps the current state of the application to a file.
+ *
+ * This function writes the current state of the application to a file. It includes
+ * information about the currently playing song, its artist and album, and the time
+ * at which the dump was created.
+ *
+ * @param app_state Pointer to the AppState object containing the current state
+ *                  of the application.
+ */
+void dump(const AppState *const app_state)
+{
+    time_t now = time(NULL);
+    const Playlist *const playlist = app_state->playlist;
+    const Song *song = playlist->songs[playlist->current_playing];
+    FILE *fp = fopen(state_dump, "w");
+    if (fp == NULL)
+    {
+        printf("Error opening file!\n");
+        exit(1);
+    }
+    if (playlist->status != STOPPED) {
+        fprintf(fp, "{\"status\"   : \"%s\",\
+                      \"artist\"   : \"%s\",\
+                      \"album\"    : \"%s\",\
+                      \"song\"     : \"%s\",\
+                      \"length\"   : %d,\
+                      \"playtime\" : %ld,\
+                      \"time\"     : %ld}\n",
+                        playlist->status == PLAYING ? "playing" : "paused",
+                        app_state->artist->name,
+                        app_state->album->name,
+                        song->name,
+                        song->duration,
+                        playlist->play_time,
+                        now);
+    }
+    else {
+        fprintf(fp, "\n");
+    }
+    fclose(fp); // close the file after writing
+}
+
+/**
+ * Notifies the user about the currently playing song.
+ *
+ * This function takes in a pointer to an AppState struct and generates a notification message with information about the currently playing song.
+ * It then executes the notification using the system command. 
+ *
+ * @param app_state A pointer to an AppState struct containing information about the application's state.
+ */ 
+void notify(const AppState *const app_state)
+{
+    char *const notification = calloc(NOTIFICATION_LENGTH, sizeof(char));
+    const Playlist *const playlist = app_state->playlist;
+    const Song *const song = playlist->songs[playlist->current_playing];
+    snprintf(notification, NOTIFICATION_LENGTH, "%s \"%s\" \"%s - %s - %s\"\n", notify_cmd, "Now playing", app_state->artist->name, app_state->album->name, song->name);
+    system(notification);
+    free(notification);
+}
+
+/**
  * Plays a song from the current playlist.
+ * If defined, sends a notification and/or dumps the AppState into a file
  *
  * This function stops any currently-playing songs and starts playing the specified song. It generates a URL to stream the song,
  * executes the specified player program with appropriate flags, and updates the playlist state accordingly.
@@ -992,6 +1056,12 @@ void play_song(const AppState *const app_state, const int index)
 
     // Store the new process ID in the playlist state.
     playlist->pid = get_pid(program);
+    if (notify_cmd != NULL) {
+        notify(app_state);
+    }
+    if (state_dump != NULL) {
+        dump(app_state);
+    }
 }
 
 /**
@@ -1014,6 +1084,10 @@ void stop_playback(const AppState *const app_state)
         app_state->playlist->status = STOPPED;
         app_state->playlist->start_time = (time_t) NULL;
         app_state->playlist->play_time = -1;
+    }
+
+    if (state_dump != NULL) {
+        dump(app_state);
     }
 }
 
@@ -1046,6 +1120,10 @@ void pause_resume(const AppState *const app_state)
             change_playback_status(playlist->pid, SIGCONT);
             playlist->status = PLAYING;
             break;
+    }
+
+    if (state_dump != NULL) {
+        dump(app_state);
     }
     return;
 }

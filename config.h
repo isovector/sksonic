@@ -64,3 +64,12 @@ static const int len_chords = sizeof(chords)/sizeof(chords[0]);
 // Define the variable and flags to use for playback
 static char *const executable = "ffplay";
 static char *const flags = "-nodisp -autoexit";
+
+// Define the variable to use for notification
+// Use NULL if this is unwanted
+static char *const notify_cmd = NULL;
+
+// Location where AppState is dumped at every song change
+// Other programs can read that file and display the information
+// Use NULL if this is unwanted
+static char *const state_dump = NULL;
