@@ -11,12 +11,6 @@ At this moment, it consists of only two panels:
 To configure it, please edit the `config.h` file directly and re-compile.
 The relevant fields are:
 `URL`, `PORT`, `USER`, `PWD`, `VERSION` AND `APP`, where `VERSION` is the `subsonic` API version, typically 1.16, and `APP` is the name with which `sksonic` will identify in `subsonic`.
-Customisation includes:
-- Selecting colours
-- Defining an indicator for the currently played song in the playlist `playing_indicator`
-- Defining a character to display the played percentage `slider_played`
-- Defining a character to display the unplayed percentage `slider_unplayed`
-
 
 ## Compiling
 `sksonic` depends on `ncurses` and `curl`.
