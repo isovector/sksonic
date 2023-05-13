@@ -702,7 +702,7 @@ void movement(const int action, AppState *app_state, const SpecialMovement speci
                 }
                 break;
             case right:
-                if (app_state->current_panel < NUM_PANELS) {
+                if (app_state->current_panel < NUM_PANELS - 1) {
                     ++app_state->current_panel;
                 }
                 break;
