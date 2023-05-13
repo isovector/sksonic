@@ -1422,6 +1422,17 @@ void request_albums(const Connection *const conn, Artist *const artist) {
     free(response);
 }
 
+/**
+ * Retrieves album information for a given artist from the server.
+ *
+ * This function retrieves album information for a given artist from the server
+ * by sending a request over the provided connection. If the artist already has
+ * album information in the database, the function does nothing.
+ *
+ * @param conn      Pointer to the Connection object used to send requests to the server.
+ * @param db        Pointer to the Database object containing the artist and album information.
+ * @param artist_id The ID of the artist for which to retrieve album information.
+ */
 void get_albums(const Connection *conn, Database *db, const char *artist_id) {
     // Retrieve the position occupied by the artist in the database
     int artist_idx = find_artist(db, artist_id);
@@ -1436,6 +1447,18 @@ void get_albums(const Connection *conn, Database *db, const char *artist_id) {
     }
 }
 
+/**
+ * Retrieves song information for a given album by an artist from the server.
+ *
+ * This function retrieves song information for a given album by an artist from the
+ * server by sending a request over the provided connection. If the album already has
+ * song information in the database, the function does nothing.
+ *
+ * @param conn      Pointer to the Connection object used to send requests to the server.
+ * @param db        Pointer to the Database object containing the artist and album information.
+ * @param artist_id The ID of the artist for which to retrieve album information.
+ * @param album_id  The ID of the album for which to retrieve song information.
+ */
 void get_songs(const Connection *conn, Database *db, const char *artist_id, const char *album_id) {
     // Retrieve the position occupied by the artist in the database
     int artist_idx = find_artist(db, artist_id);
@@ -1453,6 +1476,19 @@ void get_songs(const Connection *conn, Database *db, const char *artist_id, cons
     }
 }
 
+/**
+ * Calculates the approximate duration of a song based on its size and bit rate.
+ *
+ * This function calculates the approximate duration of a song based on its size and
+ * bit rate. It uses the formula: size*8/rate/1000 to compute the duration in seconds.
+ *
+ * @param song A JSON object representing the song to compute the duration for.
+ *             The object must have "size" and "bitRate" fields containing the size
+ *             of the song in bytes and its bit rate in kilobits per second (kbps),
+ *             respectively.
+ *
+ * @return The approximate duration of the song in seconds.
+ */
 int approximate_duration(const cJSON *const song)
 {
     const int size = cJSON_GetObjectItemCaseSensitive(song, "size")->valueint;
@@ -1460,7 +1496,17 @@ int approximate_duration(const cJSON *const song)
     return size*8/rate/1000;
 }
 
-
+/**
+ * Retrieves song information for a given album from the Subsonic server.
+ *
+ * This function retrieves song information for a given album by sending a request to
+ * the Subsonic server over the provided connection. The retrieved information is stored
+ * in the provided Album object. If the album already has song information, the function
+ * does nothing.
+ *
+ * @param conn  Pointer to the Connection object used to send requests to the server.
+ * @param album Pointer to the Album object to store the retrieved song information.
+ */
 void request_songs(const Connection *conn, Album *album) {
     if (album->songs != NULL) {
         // If album information for this artist has already been retrieved, return
@@ -1502,6 +1548,19 @@ void request_songs(const Connection *conn, Album *album) {
     free(response);
 }
 
+/**
+ * Plays the previous or next song in the playlist.
+ *
+ * This function plays the previous or next song in the playlist depending on the
+ * action provided. If the current song is the first/last one in the playlist and
+ * the user triggers a "previous"/"next" action, the function does nothing.
+ *
+ * @param app_state Pointer to the AppState object containing the current state
+ *                  of the application.
+ * @param action    An integer constant representing the action to perform. It can take
+ *                  one of two values: `previous` (to play the previous song) or `next`
+ *                  (to play the next song).
+ */
 void play_previous_next(AppState *const app_state, const int action)
 {
     Playlist *playlist = app_state->playlist;
@@ -1527,8 +1586,21 @@ void play_previous_next(AppState *const app_state, const int action)
     return;
 }
 
-
-
+/**
+ * Adds songs to the playlist based on the current panel of the application.
+ *
+ * This function adds songs to the playlist based on the current panel of the
+ * application. If the current panel is the "Artists" panel, it adds all songs from all
+ * albums of the currently selected artist. If the current panel is the "Albums" panel,
+ * it adds all songs from the currently selected album. If the current panel is the
+ * "Songs" panel, it adds the currently selected song to the playlist.
+ *
+ * @param app_state Pointer to the AppState object containing the current state of the
+ *                  application.
+ *
+ * @return The index of the first song that was added to the playlist (0-indexed), or 0 if
+ *         no songs were added to the playlist.
+ */
 int add_to_playlist(AppState *app_state)
 {
     Playlist *playlist = app_state->playlist;
@@ -1570,6 +1642,17 @@ int add_to_playlist(AppState *app_state)
     return has_songs == 0 ? 0 : first_song_to_play; 
 }
 
+/**
+ * Cleans up the application state and frees allocated memory.
+ *
+ * This function cleans up the application state by freeing all allocated memory. It
+ * specifically frees the playlist Song pointers, and deallocates memory used by the
+ * database (including Artists, Albums, and Songs). After this function is called, the
+ * AppState object should no longer be used.
+ *
+ * @param app_state Pointer to the AppState object containing the current state of the
+ *                  application.
+ */
 void cleanup(AppState *app_state)
 {
     // Make the playlist Song pointers point to NULL to avoid problems when we delete the underlying data
@@ -1600,6 +1683,18 @@ void cleanup(AppState *app_state)
     free(app_state->db->artists);
 }
 
+/**
+ * Prints a progress bar indicating the current song's playback progress.
+ *
+ * This function prints a progress bar indicating the current song's playback progress.
+ * The progress bar is printed to the first window in the provided array of windows. If
+ * the playlist is stopped, the function returns without printing anything.
+ *
+ * @param windows   An array of WINDOW pointers representing the windows to print to.
+ *                  The first window in the array is used to print the progress bar.
+ * @param app_state Pointer to the AppState object containing the current state of the
+ *                  application.
+ */
 void print_progress_bar(WINDOW **windows, const AppState *const app_state)
 {
     // Get the window to print to
@@ -1660,6 +1755,15 @@ void print_progress_bar(WINDOW **windows, const AppState *const app_state)
     wrefresh(window);
 }
 
+/**
+ * Updates the state of the current playlist and starts playing the next song.
+ *
+ * This function updates the state of the current playlist based on the shuffle/repeat settings, and starts playing the next song in the updated playlist. If the current view is VIEW_PLAYLIST, it also refreshes the playlist window to display the updated state of the playlist.
+ *
+ * @param[in] app_state A pointer to the AppState object containing the current state of the application.
+ * 
+ * @return void
+ */
 void update_playlist_state(AppState *app_state)
 {
     Playlist *const playlist = app_state->playlist;
