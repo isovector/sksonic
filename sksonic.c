@@ -472,7 +472,7 @@ void print_playlist_data(const AppState *const app_state, WINDOW *const *const w
         char *text = format_text(playlist->songs[i]->name, max_col, (i == current_playing) ? appearance[ind_playing] : "");
 	// Decorate the row, based on whether the current row is selected or not
         wattron(window, (i == current_index) ? COLOR_PAIR(ACTIVE + 1) : COLOR_PAIR(INACTIVE + 1) | A_REVERSE);
-        mvwprintw(window, i - first_item + 1, 1, "%s", text);
+        mvwprintw(window, i + 1 - first_item, 1, "%s", text);
         wattroff(window, (i == current_index) ? COLOR_PAIR(ACTIVE + 1) : COLOR_PAIR(INACTIVE + 1) | A_REVERSE);
         free(text);
     }
@@ -562,9 +562,9 @@ void print_window_data(const AppState *const app_state, PanelType panel, WINDOW 
 	}
 	text = format_text(text, max_col, "");
 	wstandend(window);
-	int is_selected_item = (i == current_index - first_item) ? 0 : 1;
+	const int is_selected_item = (i == current_index) ? 0 : 1;
 	wattron(window, row_decoration[is_selected_item][is_active_panel]);
-        mvwprintw(window, i + 1, 1, "%s", text);
+        mvwprintw(window, i + 1 - first_item, 1, "%s", text);
         wattron(window, COLOR_PAIR(INACTIVE + 1) | A_REVERSE);
         free(text);
     }
