@@ -967,7 +967,7 @@ void dump(const AppState *const app_state)
                       \"album\"    : \"%s\",\
                       \"song\"     : \"%s\",\
                       \"length\"   : %d,\
-                      \"playtime\" : %ld,\
+                      \"playtime\" : %d,\
                       \"time\"     : %ld}\n",
                         playlist->status == PLAYING ? "playing" : "paused",
                         app_state->artist->name,
@@ -996,7 +996,9 @@ void notify(const AppState *const app_state)
     char *const notification = calloc(NOTIFICATION_LENGTH, sizeof(char));
     const Playlist *const playlist = app_state->playlist;
     const Song *const song = playlist->songs[playlist->current_playing];
-    snprintf(notification, NOTIFICATION_LENGTH, "%s \"%s\" \"%s - %s - %s\"\n", notify_cmd, "Now playing", app_state->artist->name, app_state->album->name, song->name);
+    if (notify_cmd != NULL) {
+        snprintf(notification, NOTIFICATION_LENGTH, "%s \"%s\" \"%s - %s - %s\"\n", notify_cmd, "Now playing", app_state->artist->name, app_state->album->name, song->name);
+    }
     system(notification);
     free(notification);
 }
