@@ -1,5 +1,5 @@
 #define URL ""
-#define PORT 
+#define PORT
 #define USER ""
 #define PWD ""
 #define VERSION ""
@@ -26,7 +26,11 @@ static const char *appearance[5] = {
 const unsigned int bottom_space = 4;
 
 /* Actions */
-enum { play_pause, stop, next, previous, repeat, shuffle, quit, add, add_and_play, remove_one, remove_all, main_view, playlist_view, up, down, left, right, resize, bottom, top, chord };
+enum { play_pause, stop, next, previous, repeat, shuffle, quit, add, 
+       add_and_play, remove_one, remove_all, main_view, playlist_view, up, down,
+       left, right, resize, bottom, top, chord
+};
+
 static const int keys[][2] = {
     /* Keybinding,      Action */
     {'p',               play_pause},
