@@ -4,7 +4,6 @@
 #define PWD ""
 #define VERSION ""
 #define APP ""
-#define USE_CACHE 1
 #define MAX(x, y) (((x) > (y)) ? (x) : (y))
 #define MIN(x, y) (((x) < (y)) ? (x) : (y))
 
