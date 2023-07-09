@@ -117,6 +117,12 @@ typedef struct Playlist {
     ShuffleRepeatStatus shuffle_repeat_status;
 } Playlist;
 
+
+typedef struct SongInfo {
+    const char *artist;
+    const char *album;
+} SongInfo;
+
 typedef struct Playback_Program {
     char *executable;
     char *flags;
@@ -449,8 +455,7 @@ char *format_text(const char *const text, const int max_width,
  * @param app_state a pointer to the AppState struct containing the playlist to print.
  * @param window a pointer to the ncurses window in which to print the playlist.
  */
-void
-print_playlist_data(const AppState *const app_state,
+void print_playlist_data(const AppState *const app_state,
                     WINDOW *const *const windows)
 {
     WINDOW *const window = windows[0];
@@ -506,8 +511,7 @@ print_playlist_data(const AppState *const app_state,
  *
  * @return void
  */
-void
-print_window_data(const AppState *const app_state, PanelType panel,
+void print_window_data(const AppState *const app_state, PanelType panel,
                   WINDOW *const *const windows)
 {
     WINDOW *const window = windows[panel];
@@ -637,8 +641,7 @@ int get_action(const int keypress)
  * @param app_state Pointer to the AppState struct
  * @param special_movement The type of special movement (MOVE_TOP or MOVE_BOTTOM) to perform, -1 if not applicable
  */
-void
-movement(const int action, AppState *app_state,
+void movement(const int action, AppState *app_state,
          const SpecialMovement special_movement)
 {
     if (action == -1) {
@@ -758,8 +761,7 @@ movement(const int action, AppState *app_state,
  * @param windows An array of pointers to the windows to be updated
  * @param number_windows The number of windows in the array
  */
-void
-refresh_windows(const AppState *const app_state,
+void refresh_windows(const AppState *const app_state,
                 WINDOW *const *const windows, const int number_windows)
 {
     switch (app_state->current_view) {
@@ -1162,8 +1164,7 @@ void pause_resume(const AppState *const app_state)
  * @param data A pointer to a url_data struct containing information about the buffer being written to.
  * @return The total number of bytes written to the buffer.
  */
-int
-write_url_data(void *const ptr, const int size, const int nmemb,
+int write_url_data(void *const ptr, const int size, const int nmemb,
                struct url_data *const data)
 {
     // Get the starting index and number of bytes to write.
@@ -1203,8 +1204,7 @@ write_url_data(void *const ptr, const int size, const int nmemb,
  * 
  * @note The memory for the generated URL is allocated dynamically and must be freed by the caller.
  */
-void
-generate_subsonic_url(const Connection *const conn, enum Operation operation,
+void generate_subsonic_url(const Connection *const conn, enum Operation operation,
                       const char *data, char **url)
 {
     const char *path;
@@ -1531,8 +1531,7 @@ void get_albums(const Connection *conn, Database *db, const char *artist_id)
  * @param artist_id The ID of the artist for which to retrieve album information.
  * @param album_id  The ID of the album for which to retrieve song information.
  */
-void
-get_songs(const Connection *conn, Database *db, const char *artist_id,
+void get_songs(const Connection *conn, Database *db, const char *artist_id,
           const char *album_id)
 {
     // Retrieve the position occupied by the artist in the database
@@ -1773,6 +1772,36 @@ void cleanup(AppState *app_state)
 }
 
 /**
+ * Retrieves the artist and album information for a given song.
+ *
+ * @param database Pointer to the database containing the artist, album, and song data.
+ * @param song Pointer to the song for which to retrieve the artist and album information.
+ * @return A SongInfo struct containing pointers to the artist and album of the given song.
+ *         If the song is not found in any album, both artist and album pointers will be NULL.
+ */
+SongInfo get_song_info(const Database *database, const Song *song) {
+    SongInfo song_info = { NULL, NULL };
+
+    for (int i = 0; i < database->number_artists; i++) {
+        const Artist *artist = &database->artists[i];
+
+        for (int j = 0; j < artist->number_albums; j++) {
+            const Album *album = &artist->albums[j];
+
+            for (int k = 0; k < album->number_songs; k++) {
+                if (strcmp(album->songs[k].id, song->id) == 0) {
+                    song_info.artist = artist->name;
+                    song_info.album = album->name;
+                    return song_info;
+                }
+            }
+        }
+    }
+
+    return song_info;  // Song not found in any album
+}
+
+/**
  * Prints a progress bar indicating the current song's playback progress.
  *
  * This function prints a progress bar indicating the current song's playback progress.
@@ -1811,10 +1840,8 @@ void print_progress_bar(WINDOW **windows, const AppState *const app_state)
     char *artist_name = NULL;
     char *album_name = NULL;
 
-    if (app_state->artist && app_state->album) {
-        artist_name = app_state->artist->name;
-        album_name = app_state->album->name;
-    }
+    // Retrieve the album and artist information
+    const SongInfo song_info = get_song_info(app_state->db, song);
     char *status_symbol;
 
     switch (app_state->playlist->shuffle_repeat_status) {
@@ -1830,7 +1857,7 @@ void print_progress_bar(WINDOW **windows, const AppState *const app_state)
     }
 
     // Print the progress bar
-    wprintw(window, "\n %s - %s - %s [%s]\n", artist_name, album_name,
+    wprintw(window, "\n %s - %s - %s [%s]\n", song_info.artist, song_info.album,
             song->name, status_symbol);
     wmove(window, 2, 1);
     for (int i = 0; i < bar_width; ++i) {
