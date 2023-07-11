@@ -15,7 +15,7 @@ static const short colors[NUM_COLORS][2] = {
 };
 
 enum { ind_playing, ind_repeat, ind_shuffle, ind_played, ind_unplayed };
-static const char *appearance[5] = {
+static const char *const appearance[5] = {
     ">", /* Playing indicator in the playlist */
     "R", /* Playing indicator, Repeat mode */
     "X", /* Playing indicator, Shuffle mode */

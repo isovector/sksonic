@@ -149,7 +149,7 @@ struct url_data {
 };
 
 /* Functions */
-int write_url_data(void *, int, int, struct url_data *);
+int write_url_data(void *const, const int, const int, struct url_data *const);
 void pause_resume(const AppState *const);
 void stop_playback(const AppState *const);
 void generate_subsonic_url(const Connection *, enum Operation, const char *, 
@@ -157,8 +157,9 @@ void generate_subsonic_url(const Connection *, enum Operation, const char *,
 void add_song(const Song *, Playlist *);
 void delete_song(const AppState *const);
 void get_artists(const Connection *, Database *);
-void get_albums(const Connection *, Database *, const char *);
-void get_songs(const Connection *, Database *, const char *, const char *);
+void get_albums(const Connection *const, const Database *const, 
+        const char *const);
+void get_songs(const Connection *const, const Database *const, const char *, const char *);
 void notify(const AppState *);
 void request_albums(const Connection *const, Artist *const);
 void request_songs(const Connection *, Album *);
@@ -293,7 +294,7 @@ static WINDOW **create_windows(const int number_windows, const int bottom_space,
         window_type == WINDOW_PLAYBACK ? bottom_space : screen_h - bottom_space;
 
     // Create windows
-    WINDOW **windows = calloc(number_windows, sizeof(WINDOW *));
+    WINDOW **const windows = calloc(number_windows, sizeof(WINDOW *));
     const int remaining_w = screen_w % number_windows;
     int x = 0;
 
@@ -412,7 +413,7 @@ char *format_text(const char *const text, const int max_width,
         // Allocate enough space for formatted string
         const size_t bytes_formatted =
             prefix_size + text_size + padding_len + 1;
-        char *formatted = calloc(bytes_formatted, sizeof(char));
+        char *const formatted = calloc(bytes_formatted, sizeof(char));
 
         if (formatted == NULL) {
             return NULL;
@@ -432,7 +433,7 @@ char *format_text(const char *const text, const int max_width,
             bytes_prefix + bytes_text + bytes_ellipsis + 1;
 
         // Allocate enough space to hold the entire string with prefix and ellipsis
-        char *formatted = calloc(bytes_formatted, sizeof(char));
+        char *const formatted = calloc(bytes_formatted, sizeof(char));
 
         if (formatted == NULL) {
             return NULL;
@@ -511,7 +512,7 @@ void print_playlist_data(const AppState *const app_state,
  *
  * @return void
  */
-void print_window_data(const AppState *const app_state, PanelType panel,
+void print_window_data(const AppState *const app_state, const PanelType panel,
                   WINDOW *const *const windows)
 {
     WINDOW *const window = windows[panel];
@@ -621,7 +622,7 @@ int get_action(const int keypress)
         return -1;
     }
 
-    int action = hash_table[keypress];
+    const int action = hash_table[keypress];
 
     if (action >= 0) {
         return action;
@@ -641,7 +642,7 @@ int get_action(const int keypress)
  * @param app_state Pointer to the AppState struct
  * @param special_movement The type of special movement (MOVE_TOP or MOVE_BOTTOM) to perform, -1 if not applicable
  */
-void movement(const int action, AppState *app_state,
+void movement(const int action, AppState *const app_state,
          const SpecialMovement special_movement)
 {
     if (action == -1) {
@@ -789,7 +790,9 @@ Database init_db(void)
 {
     // Initialize an empty database struct with NULL artists pointer and 0 number of artists.
     return (Database) {
-    .artists = NULL,.number_artists = 0,};
+        .artists = NULL,
+        .number_artists = 0,
+    };
 }
 
 /**
@@ -801,7 +804,7 @@ Database init_db(void)
 Playlist init_playlist(void)
 {
     // Allocate memory for 10 Song pointers using malloc.
-    Song **songs = (Song **) malloc(10 * sizeof(Song *));
+    Song **const songs = (Song **) malloc(10 * sizeof(Song *));
 
     // If malloc fails to allocate memory, clean up and exit program.
     if (songs == NULL) {
@@ -810,10 +813,18 @@ Playlist init_playlist(void)
     }
     // Initialize and return a new Playlist struct with dynamically allocated memory for songs.
     return (Playlist) {
-    .songs = &songs[0],.size = 0,.capacity = 10,.current_playing =
-            0,.start_time = (time_t) NULL,.play_time =
-            0,.status = STOPPED,.repeat_shuffle =
-            0,.selected_song_idx = -1,.pid = -1,.shuffle_repeat_status = NONE,};
+        .songs = &songs[0],
+        .size = 0,
+        .capacity = 10,
+        .current_playing = 0,
+        .start_time = (time_t) NULL,
+        .play_time = 0,
+        .status = STOPPED,
+        .repeat_shuffle = 0,
+        .selected_song_idx = -1,
+        .pid = -1,
+        .shuffle_repeat_status = NONE,
+    };
 }
 
 /**
@@ -830,7 +841,7 @@ void add_song(const Song *const song, Playlist *const playlist)
         playlist->capacity <<= 1;
 
         // Reallocate the memory block with the new capacity.
-        void *p = realloc(playlist->songs,
+        void *const p = realloc(playlist->songs,
                           playlist->capacity * sizeof(playlist->songs));
 
         // If realloc fails, print an error message and exit the program.
@@ -970,10 +981,10 @@ static inline void change_playback_status(const pid_t pid, const int signal)
  */
 void dump(const AppState *const app_state)
 {
-    time_t now = time(NULL);
+    const time_t now = time(NULL);
     const Playlist *const playlist = app_state->playlist;
     const Song *song = playlist->songs[playlist->current_playing];
-    FILE *fp = fopen(state_dump, "w");
+    FILE *const fp = fopen(state_dump, "w");
 
     if (fp == NULL) {
         printf("Error opening file!\n");
@@ -1125,7 +1136,6 @@ void stop_playback(const AppState *const app_state)
 void pause_resume(const AppState *const app_state)
 {
     Playlist *const playlist = app_state->playlist;
-    time_t now;
 
     // Check if there is a current song playing.
     switch (playlist->status) {
@@ -1139,7 +1149,7 @@ void pause_resume(const AppState *const app_state)
             break;
         case PAUSED:
             // Resume playback and update playlist state.
-            now = time(NULL);
+            const time_t now = time(NULL);
             playlist->start_time = now;
             change_playback_status(playlist->pid, SIGCONT);
             playlist->status = PLAYING;
@@ -1172,7 +1182,7 @@ int write_url_data(void *const ptr, const int size, const int nmemb,
     const int bytes_written = (size * nmemb);
 
     // Resize the data buffer to accommodate the new data.
-    char *new_data_ptr = realloc(data->data, data->size + bytes_written + 1);   // +1 for '\0'
+    char *const new_data_ptr = realloc(data->data, data->size + bytes_written + 1);   // +1 for '\0'
 
     if (new_data_ptr == NULL) {
         fprintf(stderr, "Error: Failed to allocate memory for URL data.\n");
@@ -1258,7 +1268,7 @@ void generate_subsonic_url(const Connection *const conn, enum Operation operatio
  */
 char *fetch_url_data(const char *const url)
 {
-    CURL *curl_handle = curl_easy_init();
+    CURL *const curl_handle = curl_easy_init();
     const int initial_size = 4096;
 
     struct url_data url_data = {
@@ -1279,14 +1289,12 @@ char *fetch_url_data(const char *const url)
         exit(EXIT_FAILURE);
     }
 
-    CURLcode curl_result;
-
     // Set curl options and perform request.
     curl_easy_setopt(curl_handle, CURLOPT_URL, url);
     curl_easy_setopt(curl_handle, CURLOPT_WRITEFUNCTION, write_url_data);
     curl_easy_setopt(curl_handle, CURLOPT_WRITEDATA, &url_data);
     curl_easy_setopt(curl_handle, CURLOPT_HTTP_VERSION, CURL_HTTP_VERSION_2);
-    curl_result = curl_easy_perform(curl_handle);
+    const CURLcode curl_result = curl_easy_perform(curl_handle);
 
     if (curl_result != CURLE_OK) {
         fprintf(stderr, "curl_easy_perform() failed: %s\n",
@@ -1310,14 +1318,14 @@ char *fetch_url_data(const char *const url)
  * 
  * @remarks The caller is responsible for freeing the memory allocated for the Database struct.
  */
-void get_artists(const Connection *const connection, Database *db)
+void get_artists(const Connection *const connection, Database *const db)
 {
     // Generate the URL to fetch the artists data
-    char *url;
+    char *url = NULL;
 
     generate_subsonic_url(connection, ARTISTS, NULL, &url);
 
-    char *response = fetch_url_data(url);
+    char *const response = fetch_url_data(url);
     cJSON *const response_root = cJSON_Parse(response);
     cJSON const *subsonic_response =
         cJSON_GetObjectItemCaseSensitive(response_root,
@@ -1333,7 +1341,7 @@ void get_artists(const Connection *const connection, Database *db)
     }
 
     int number_artists = 0;
-    cJSON *const index =
+    const cJSON *const index =
         cJSON_GetObjectItemCaseSensitive(cJSON_GetObjectItemCaseSensitive
                                          (subsonic_response, "artists"),
                                          "index");
@@ -1446,7 +1454,7 @@ void request_albums(const Connection *const conn, Artist *const artist)
 
     generate_subsonic_url(conn, ALBUMS, artist->id, &url);
 
-    char *response = fetch_url_data(url);
+    char *const response = fetch_url_data(url);
     cJSON *const response_root = cJSON_Parse(response);
     cJSON *const subsonic_response =
         cJSON_GetObjectItemCaseSensitive(response_root,
@@ -1464,7 +1472,7 @@ void request_albums(const Connection *const conn, Artist *const artist)
     const cJSON *const artist_json =
         cJSON_GetObjectItemCaseSensitive(subsonic_response, "artist");
     const int number_albums = cJSON_GetObjectItemCaseSensitive(artist_json,
-                                                               "albumCount")->valueint;
+                                                       "albumCount")->valueint;
     if (number_albums == 0) {
         return;                 // No albums found for this artist
     }
@@ -1505,16 +1513,16 @@ void request_albums(const Connection *const conn, Artist *const artist)
  * @param db        Pointer to the Database object containing the artist and album information.
  * @param artist_id The ID of the artist for which to retrieve album information.
  */
-void get_albums(const Connection *conn, Database *db, const char *artist_id)
+void get_albums(const Connection *const conn, const Database *const db, 
+        const char *const artist_id)
 {
     // Retrieve the position occupied by the artist in the database
-    int artist_idx = find_artist(db, artist_id);
+    const int artist_idx = find_artist(db, artist_id);
 
-    Artist *artist = &(db->artists[artist_idx]);
+    Artist *const artist = &(db->artists[artist_idx]);
 
     // Check if the artist already has album information
     if (artist->number_albums == 0) {
-        // Retrieve album information from the server
         request_albums(conn, artist);
     }
 }
@@ -1531,20 +1539,19 @@ void get_albums(const Connection *conn, Database *db, const char *artist_id)
  * @param artist_id The ID of the artist for which to retrieve album information.
  * @param album_id  The ID of the album for which to retrieve song information.
  */
-void get_songs(const Connection *conn, Database *db, const char *artist_id,
-          const char *album_id)
+void get_songs(const Connection *const conn, const Database *const db, 
+        const char *const artist_id, const char *const album_id)
 {
     // Retrieve the position occupied by the artist in the database
-    int artist_idx = find_artist(db, artist_id);
-    Artist *artist = &(db->artists[artist_idx]);
+    const int artist_idx = find_artist(db, artist_id);
+    const Artist *const artist = &(db->artists[artist_idx]);
 
     // Retrieve the position occupied by the album in the Artist struct 
-    int album_idx = find_album(artist, album_id);
-    Album *album = &(artist->albums[album_idx]);
+    const int album_idx = find_album(artist, album_id);
+    Album *const album = &(artist->albums[album_idx]);
 
-    // Check if hte album already has song information
+    // Check if the album already has song information
     if (album->number_songs == 0) {
-        // Retrieve song information from the server
         request_songs(conn, album);
     }
 }
@@ -1581,53 +1588,50 @@ int approximate_duration(const cJSON *const song)
  * @param conn  Pointer to the Connection object used to send requests to the server.
  * @param album Pointer to the Album object to store the retrieved song information.
  */
-void request_songs(const Connection *conn, Album *album)
+void request_songs(const Connection *const conn, Album *const album)
 {
     if (album->songs != NULL) {
         // If album information for this artist has already been retrieved, return
         return;
     }
 
-    char *url;
+    char *url = NULL;
 
     generate_subsonic_url(conn, SONGS, album->id, &url);
 
-    char *response = fetch_url_data(url);
-    cJSON *response_root = cJSON_Parse(response);
-    cJSON *subsonic_response = cJSON_GetObjectItemCaseSensitive(response_root,
-                                                                "subsonic-response");
+    char *const response = fetch_url_data(url);
+    cJSON *const response_root = cJSON_Parse(response);
+    cJSON *const subsonic_response = 
+        cJSON_GetObjectItemCaseSensitive(response_root, "subsonic-response");
 
-    if (strcmp
-        ("ok",
-         cJSON_GetObjectItemCaseSensitive(subsonic_response,
+    if (strcmp("ok", cJSON_GetObjectItemCaseSensitive(subsonic_response,
                                           "status")->valuestring) != 0) {
         fprintf(stderr,
                 "Error: Failed to retrieve artists from Subsonic server/\n");
         exit(EXIT_FAILURE);
     }
 
-    cJSON const *album_json =
+    const cJSON *const album_json =
         cJSON_GetObjectItemCaseSensitive(subsonic_response, "album");
-    int number_songs =
+    const int number_songs =
         cJSON_GetObjectItemCaseSensitive(album_json, "songCount")->valueint;
 
     album->songs = malloc(sizeof(Song) * number_songs);
     album->number_songs = number_songs;
-    cJSON *songs = cJSON_GetObjectItemCaseSensitive(album_json, "song");
-    cJSON *song;
+    const cJSON *const songs = cJSON_GetObjectItemCaseSensitive(album_json, "song");
+    const cJSON *song;
     int i = 0;
 
     cJSON_ArrayForEach(song, songs) {
-        Song *s = &(album->songs[i]);
+        Song *const s = &(album->songs[i]);
 
         s->id =
             strdup(cJSON_GetObjectItemCaseSensitive(song, "id")->valuestring);
         s->name =
             strdup(cJSON_GetObjectItemCaseSensitive(song, "title")->
                    valuestring);
-        s->duration = (int) cJSON_HasObjectItem(song, "duration") ? (int)
-            cJSON_GetObjectItemCaseSensitive(song,
-                                             "duration")->valueint :
+        s->duration = cJSON_HasObjectItem(song, "duration") ? 
+            cJSON_GetObjectItemCaseSensitive(song, "duration")->valueint :
             approximate_duration(song);
         i++;
     }
@@ -1652,7 +1656,7 @@ void request_songs(const Connection *conn, Album *album)
  */
 void play_previous_next(AppState *const app_state, const int action)
 {
-    Playlist *playlist = app_state->playlist;
+    Playlist *const playlist = app_state->playlist;
 
     switch (action) {
         case previous:
@@ -1670,7 +1674,6 @@ void play_previous_next(AppState *const app_state, const int action)
         default:
             break;
     }
-    return;
 }
 
 /**
@@ -1690,10 +1693,10 @@ void play_previous_next(AppState *const app_state, const int action)
  */
 int add_to_playlist(AppState *app_state)
 {
-    Playlist *playlist = app_state->playlist;
-    Artist *artist = app_state->artist;
-    Album *album = app_state->album;
-    Song *song = NULL;
+    Playlist *const playlist = app_state->playlist;
+    const Artist *const artist = app_state->artist;
+    const Album *album = app_state->album;
+    const Song *song = NULL;
     const int first_song_to_play = playlist->size;
     const int has_songs = playlist->size == 0 ? 0 : 1;
     const PanelType current_panel = app_state->current_panel;
@@ -1725,7 +1728,7 @@ int add_to_playlist(AppState *app_state)
         default:
             break;
     }
-    return has_songs == 0 ? 0 : first_song_to_play;
+    return has_songs ?  first_song_to_play : 0;
 }
 
 /**
@@ -1741,6 +1744,10 @@ int add_to_playlist(AppState *app_state)
  */
 void cleanup(AppState *app_state)
 {
+    if (app_state == NULL) {
+        return;
+    }
+
     // Make the playlist Song pointers point to NULL to avoid problems when we delete the underlying data
     for (int i = 0; i < app_state->playlist->size; i++) {
         app_state->playlist->songs[i] = NULL;
@@ -1779,14 +1786,14 @@ void cleanup(AppState *app_state)
  * @return A SongInfo struct containing pointers to the artist and album of the given song.
  *         If the song is not found in any album, both artist and album pointers will be NULL.
  */
-SongInfo get_song_info(const Database *database, const Song *song) {
+SongInfo get_song_info(const Database *const database, const Song *const song) {
     SongInfo song_info = { NULL, NULL };
 
     for (int i = 0; i < database->number_artists; i++) {
-        const Artist *artist = &database->artists[i];
+        const Artist *const artist = &database->artists[i];
 
         for (int j = 0; j < artist->number_albums; j++) {
-            const Album *album = &artist->albums[j];
+            const Album *const album = &artist->albums[j];
 
             for (int k = 0; k < album->number_songs; k++) {
                 if (strcmp(album->songs[k].id, song->id) == 0) {
@@ -1821,13 +1828,12 @@ void print_progress_bar(WINDOW **windows, const AppState *const app_state)
 
     // Clear the window
     werase(window);
-    if (playlist->status == STOPPED) {
+    if (playlist == NULL || playlist->status == STOPPED) {
         wrefresh(window);
         return;
     }
     // Retrieve the current song and its duration
-    const Song *const song =
-        playlist->songs[app_state->playlist->current_playing];
+    const Song *const song = playlist->songs[playlist->current_playing];
     const int duration = song->duration;
 
     // Compute the progress bar width based on the window width
@@ -1837,14 +1843,12 @@ void print_progress_bar(WINDOW **windows, const AppState *const app_state)
     const int num_hashes =
         (int) ((double) (playlist->play_time) / (double) (duration) *
                (double) (bar_width));
-    char *artist_name = NULL;
-    char *album_name = NULL;
 
     // Retrieve the album and artist information
     const SongInfo song_info = get_song_info(app_state->db, song);
-    char *status_symbol;
+    const char *status_symbol;
 
-    switch (app_state->playlist->shuffle_repeat_status) {
+    switch (playlist->shuffle_repeat_status) {
         case SHUFFLE:
             status_symbol = strdup(appearance[ind_shuffle]);
             break;
@@ -1885,11 +1889,16 @@ void update_playlist_state(AppState *app_state)
 {
     Playlist *const playlist = app_state->playlist;
 
+    if (playlist == NULL) {
+        return;
+    }
+
     int last_song = 0;
+    const int playlist_size = playlist->size;
     // Increment index to play next song
     switch (playlist->shuffle_repeat_status) {
         case NONE:
-            if (playlist->size - 1 > playlist->current_playing) {
+            if (playlist_size - 1 > playlist->current_playing) {
                 playlist->current_playing++;
             } else {
                 last_song = 1;
@@ -1898,7 +1907,7 @@ void update_playlist_state(AppState *app_state)
             }
             break;
         case SHUFFLE:
-            playlist->current_playing = rand() % playlist->size;
+            playlist->current_playing = rand() % playlist_size;
             break;
         case REPEAT:
             break;
@@ -1914,7 +1923,6 @@ void update_playlist_state(AppState *app_state)
     if (app_state->current_view == VIEW_PLAYLIST) {
         refresh_windows(app_state, app_state->windows[WINDOW_PLAYLIST], 1);
     }
-    return;
 }
 
 /*
@@ -1939,7 +1947,6 @@ void change_shuffle_repeat(Playlist *const playlist, const char action)
                 (playlist->shuffle_repeat_status == REPEAT) ? NONE : REPEAT;
             break;
     }
-    return;
 }
 
 /**
@@ -1967,7 +1974,7 @@ int get_chord(const int keypress)
         return -1;
     }
 
-    int chord = hash_table[keypress];
+    const int chord = hash_table[keypress];
 
     if (chord != 0) {
         return chord;
