@@ -883,7 +883,7 @@ void delete_song(const AppState *const app_state)
     }
     // Use memmove to shift all elements after the deleted song one position to the left.
     memmove(&playlist->songs[index], &playlist->songs[index + 1],
-            (playlist_size - index - 1) * sizeof(*playlist->songs));
+            (playlist_size - index - 1) * sizeof(Song));
 
     // Decrement the playlist size after deleting the song.
     playlist->size--;
@@ -894,7 +894,7 @@ void delete_song(const AppState *const app_state)
         playlist->capacity >>= 1;       // Bit shift right by 1 to divide by 2.
         playlist->songs =
             realloc(playlist->songs,
-                    playlist->capacity * sizeof(*playlist->songs));
+                    playlist->capacity * sizeof(Song));
         // If realloc fails to allocate memory, print an error message and exit the program.
         if (playlist->songs == NULL) {
             fprintf(stderr,
