@@ -26,9 +26,9 @@ static const char *const appearance[5] = {
 const unsigned int bottom_space = 4;
 
 /* Actions */
-enum { play_pause, stop, next, previous, repeat, shuffle, quit, add, 
+enum { play_pause, stop, next, previous, repeat, shuffle, quit, add,
        add_and_play, remove_one, remove_all, main_view, playlist_view, up, down,
-       left, right, resize, bottom, top, chord
+       left, right, resize, bottom, top, chord, search, search_next, search_previous
 };
 
 static const int keys[][2] = {
@@ -54,6 +54,9 @@ static const int keys[][2] = {
     {KEY_RESIZE,        resize},
     {'G',               bottom},
     {'g',               chord},
+    {'/',               search},
+    {'n',               search_next},
+    {'N',               search_previous},
 };
 
 enum { chord_top };

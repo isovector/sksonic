@@ -15,6 +15,7 @@
 #include "config.h"
 #define HASH_TABLE_SIZE 1024
 #define NOTIFICATION_LENGTH 1024
+#define MAX_QUERY_LENGTH 256
 
 typedef enum {
     PANEL_ARTISTS,
@@ -861,6 +862,213 @@ void add_song(const Song *const song, Playlist *const playlist)
     // If the selected song index was not previously set, set it to the first song in the playlist.
     if (playlist->selected_song_idx == -1) {
         playlist->selected_song_idx = 0;
+    }
+}
+
+/**
+ * Update the selected index based on the query and action.
+ *
+ * @param possible_matches The possible matches to search through.
+ * @param n_matches The number of possible matches.
+ * @param query The query to search for.
+ * @param action The action to perform.
+ * @param current_found The current found index.
+ * @param idx_to_update The index to update.
+ */
+void update_selected_index(const char *const possible_matches[], const int n_matches, const char *const query, const int action, int *current_found, int *idx_to_update)
+{
+    if (query == NULL) {
+        return;
+    }
+
+    int start, end, step;
+    
+    switch (action) {
+        case search_previous:
+            start = *current_found - 1;
+            end = 0;
+            step = -1;
+            break;
+        case search_next:
+            start = *current_found + 1;
+            end = n_matches;
+            step = 1;
+            break;
+        default:
+            start = 0;
+            end = n_matches;
+            step = 1;
+            break;
+    }
+
+    for (int i = start; i != end; i += step) {
+        if (strstr(possible_matches[i], query) != NULL) {
+            *idx_to_update = i;
+            *current_found = i;
+            return; // Found a match, exit the loop
+        }
+    }
+}
+
+/**
+ * Search for a query in the current view and update the selected index.
+ *
+ * @param app_state The application state.
+ */
+void search_idx(AppState *app_state)
+{
+    WINDOW *playback_window = *app_state->windows[WINDOW_PLAYBACK];
+    ViewType current_view = app_state->current_view;
+    PanelType current_panel = app_state->current_panel;
+
+
+    const int n_matches = current_view == WINDOW_PLAYLIST ? app_state->playlist->size : 
+                          current_panel == PANEL_ARTISTS ? app_state->db->number_artists :
+                          current_panel == PANEL_ALBUMS ? app_state->artist->number_albums :
+                          current_panel == PANEL_SONGS ? app_state->album->number_songs : 0;
+    if (n_matches == 0) {
+        return;
+    }
+
+    const char *possible_matches[n_matches];
+
+    int *idx_to_update = NULL;
+    if (current_view == WINDOW_PLAYLIST) {
+        for (int i = 0; i < n_matches; i++) {
+            possible_matches[i] = app_state->playlist->songs[i]->name;
+        }
+        idx_to_update = &app_state->playlist->selected_song_idx;
+    } else {
+        if (current_panel == PANEL_ARTISTS) {
+            for (int i = 0; i < n_matches; i++) {
+                possible_matches[i] = app_state->db->artists[i].name;
+            }
+            idx_to_update = &app_state->selected_artist_idx;
+        }
+        if (current_panel == PANEL_ALBUMS) {
+            for (int i = 0; i < n_matches; i++) {
+                possible_matches[i] = app_state->artist->albums[i].name;
+            }
+            idx_to_update = &app_state->selected_album_idx;
+        }
+        if (current_panel == PANEL_SONGS) {
+            for (int i = 0; i < n_matches; i++) {
+                possible_matches[i] = app_state->album->songs[i].name;
+            }
+            idx_to_update = &app_state->selected_song_idx;
+        }
+    }
+
+    wclear(playback_window);
+    wprintw(playback_window, "Search: ");
+    wrefresh(playback_window);
+
+    char query[MAX_QUERY_LENGTH] = { 0 };
+    int c;
+    int i = 0;
+    int current_found = 0;
+
+    while ((c = getch()) != '\n') {
+        switch (c) {
+            case -1:
+                break;
+            case 27:
+                return;
+                break;
+            case '\n':
+                query[i] = '\0';
+                break;
+            case 127:
+            case KEY_BACKSPACE:
+            case KEY_DC:
+                if (i > 0) {
+                    query[--i] = '\0';
+                    mvwaddch(playback_window, 0, strlen("Search: ") + i, ' ');
+                }
+                break;
+            default:
+                if (i < MAX_QUERY_LENGTH - 1) {
+                    mvwaddch(playback_window, 0, strlen("Search: ") + i, c);
+                    query[i++] = c;
+                }
+                break;
+        }
+        
+        // Print any new characters entered
+        wrefresh(playback_window);
+
+        // Update the artist and album based on the query
+        update_selected_index(possible_matches, n_matches, query, 0, &current_found, idx_to_update);
+        Artist *const artist =
+            &(app_state->db->artists[app_state->selected_artist_idx]);
+        app_state->artist = artist;
+        get_albums(app_state->connection, app_state->db, artist->id);
+        Album *const album = &(artist->albums[app_state->selected_album_idx]);
+
+        app_state->album = album;
+        get_songs(app_state->connection, app_state->db, artist->id, album->id);
+    
+        // Refresh
+        if (current_view == VIEW_PLAYLIST) {
+            print_playlist_data(app_state,app_state->windows[WINDOW_PLAYLIST]);
+        } else {
+            // Refresh all panels (we could also refresh the child panel)
+            for (int i = 0; i < NUM_PANELS; i++) {   
+                print_window_data(app_state, i, app_state->windows[WINDOW_INFO]);
+            }
+        }
+    }
+    int action = -1;
+    while (1) {
+        c = getch();
+        action = get_action(c);
+        switch (action) {
+            case add_and_play:
+                if (app_state->current_view == VIEW_INFO) {
+                    const int first_song_to_play = add_to_playlist(app_state);
+                    play_song(app_state, first_song_to_play);
+                }
+                if (app_state->current_view == VIEW_PLAYLIST) {
+                    play_song(app_state, app_state->playlist->selected_song_idx);
+                    refresh_windows(app_state, app_state->windows[WINDOW_PLAYLIST], 1);
+                }
+                return;
+                break;
+            case add:
+                add_to_playlist(app_state);
+                return;
+                break;
+            case search_next:
+            case search_previous:
+                update_selected_index(possible_matches, n_matches, query, action, &current_found, idx_to_update);
+                
+                // Update the artist and album as we request next or previous
+                Artist *const artist =
+                    &(app_state->db->artists[app_state->selected_artist_idx]);
+                app_state->artist = artist;
+                get_albums(app_state->connection, app_state->db, artist->id);
+                Album *const album = &(artist->albums[app_state->selected_album_idx]);
+
+                app_state->album = album;
+                get_songs(app_state->connection, app_state->db, artist->id, album->id);
+
+                // Refresh
+                if (current_view == VIEW_PLAYLIST) {
+                    print_playlist_data(app_state,app_state->windows[WINDOW_PLAYLIST]);
+                } else {
+                    // Refresh all panels (we could also refresh the child panel)
+                    for (int i = 0; i < NUM_PANELS; i++) {   
+                        print_window_data(app_state, i, app_state->windows[WINDOW_INFO]);
+                    }
+                }
+                break;
+            default:
+                break;
+        }
+
+        if (action != search_next && action != search_previous && c != -1) {
+            break;
+        }
     }
 }
 
@@ -2106,6 +2314,8 @@ void handle_action(const int action, AppState *app_state)
                 refresh();
             }
             break;
+        case search:
+            search_idx(app_state);
         case resize:
             endwin();
             refresh();
