@@ -164,13 +164,15 @@ void notify(const AppState *);
 void request_albums(const Connection *const, Artist *const);
 void request_songs(const Connection *, Album *);
 void print_window_data(const AppState *const, PanelType, WINDOW *const *const);
-static inline void change_playback_status(const pid_t, const int);
+void change_playback_status(const pid_t, const int);
 int add_to_playlist(AppState *);
 char *fetch_url_data(const char *const);
 Database init_db(void);
-static AppState init_appstate(void);
+AppState init_appstate(void);
 Playlist init_playlist(void);
-static WINDOW **create_windows(const int, const int, const WindowType);
+WINDOW **create_windows(const int, const int, const WindowType);
+void play_song(const AppState *const, const int);
+void search_idx(AppState *);
 
 static const Connection connection = {
     .url = URL,
@@ -186,7 +188,7 @@ static const Connection connection = {
  *
  * @return The initialized app state.
  */
-static AppState init_appstate(void)
+AppState init_appstate(void)
 {
     static const Playback_Program program = { executable, flags };
 
@@ -281,7 +283,7 @@ void setup_ncurses(void)
  * @param window_type 	The type of windows to create.
  * @return An array of ncurses windows.
  */
-static WINDOW **create_windows(const int number_windows, const int bottom_space,
+WINDOW **create_windows(const int number_windows, const int bottom_space,
                                const WindowType window_type)
 {
     // Get screen dimensions
@@ -955,7 +957,7 @@ pid_t get_pid(const Playback_Program program)
  * @param pid The process ID of the running process.
  * @param signal The signal to send to the process.
  */
-static inline void change_playback_status(const pid_t pid, const int signal)
+void change_playback_status(const pid_t pid, const int signal)
 {
 
     // If the PID is invalid or not set, there's nothing to do.
